@@ -125,11 +125,11 @@ section                    address   length (PC units)   length (bytes) (dec)
 -------                    -------   -----------------   --------------------
 .text                        0x200               0xfaa          0x177f  (6015)
 .const                      0x11aa                0x22            0x33  (51)
-.text                       0x11cc               0x36e           0x525  (1317)
-.dinit                      0x153a                0xc2           0x123  (291)
-.text                       0x15fc                0xc6           0x129  (297)
+.text                       0x11cc               0x49e           0x6ed  (1773)
+.dinit                      0x166a                0xc2           0x123  (291)
+.text                       0x172c                0x1a            0x27  (39)
 
-                 Total "program" memory used (bytes):         0x1f23  (7971) 3%
+                 Total "program" memory used (bytes):         0x1fe9  (8169) 3%
 
 
 "data" Memory  [Origin = 0x800, Length = 0x7800]
@@ -245,9 +245,9 @@ External Symbols in Program Memory (by address):
                   0x0014b0                  _drawData
                   0x001504                  _gotoPosition
                   0x001528                  _gotoLine
-                  0x0015fc                  _delay
-                  0x001616                  _main
-                  0x0016a8                  _led_init
+                  0x00153a                  _delay
+                  0x001564                  _main
+                  0x00172c                  _led_init
 
 External Symbols in Program Memory (by name):
 
@@ -281,7 +281,7 @@ External Symbols in Program Memory (by name):
                   0x001274                  _backLight
                   0x0012fa                  _changeBaud
                   0x001252                  _clearLCD
-                  0x0015fc                  _delay
+                  0x00153a                  _delay
                   0x0013d8                  _drawBox
                   0x00128a                  _drawCircle
                   0x0014b0                  _drawData
@@ -299,8 +299,8 @@ External Symbols in Program Memory (by name):
                   0x0011f6                  _lcd_send
                   0x001240                  _lcd_send_cmd
                   0x001220                  _lcd_send_str
-                  0x0016a8                  _led_init
-                  0x001616                  _main
+                  0x00172c                  _led_init
+                  0x001564                  _main
                   0x000a8e                  _malloc
                   0x00064e                  _memchr
                   0x000662                  _memcpy
@@ -1965,7 +1965,7 @@ __c30_signature
 .const              0x91aa         0x22 load address 0x0011aa  
  .const             0x91aa         0x22 build/default/production/src/main.o
 
-.text             0x0011cc        0x36e
+.text             0x0011cc        0x49e
  .text            0x0011cc        0x36e lib/libLCD.a(lcd.o)
                   0x0011cc                  lcd_initialize
                   0x0011f0                  lcd_check_flow_control
@@ -1993,13 +1993,13 @@ __c30_signature
                   0x0014b0                  drawData
                   0x001504                  gotoPosition
                   0x001528                  gotoLine
+ .text            0x00153a        0x130 build/default/production/src/main.o
+                  0x00153a                  delay
+                  0x001564                  main
 
-.dinit            0x00153a         0xc2
- .dinit           0x00153a         0xc2 data_init
+.dinit            0x00166a         0xc2
+ .dinit           0x00166a         0xc2 data_init
 
-.text             0x0015fc         0xc6
- .text            0x0015fc         0xac build/default/production/src/main.o
-                  0x0015fc                  delay
-                  0x001616                  main
- .text            0x0016a8         0x1a build/default/production/src/led.o
-                  0x0016a8                  led_init
+.text             0x00172c         0x1a
+ .text            0x00172c         0x1a build/default/production/src/led.o
+                  0x00172c                  led_init
