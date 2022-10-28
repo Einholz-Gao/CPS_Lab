@@ -25,7 +25,8 @@ void delay(){
        {};
 }
 int main(){
-    uint16_t i=0;
+    uint8_t i=0;
+    uint8_t flag;
     lcd_initialize();
     led_init();
     lcd_clear();
@@ -44,20 +45,48 @@ while(1){
     lcd_locate(0, 3);
     lcd_printf("Counter:%d",i);
     
-    if((i&0x01)==0x01) SETLED(LED5_PORT); 
-    if((i&0x02)==0x02) SETLED(LED4_PORT); 
-    if((i&0x04)==0x04) SETLED(LED3_PORT); 
-    if((i&0x08)==0x08) SETLED(LED2_PORT); 
-    if((i&0x10)==0x10) SETLED(LED1_PORT); 
-      
-    delay();
-    CLEARLED(LED1_PORT);
-    CLEARLED(LED2_PORT);
-    CLEARLED(LED3_PORT);
-    CLEARLED(LED4_PORT);
-    CLEARLED(LED5_PORT);
-    i++;
+    if (i==4){
+        flag=0;
     }
+    else if(i==0)
+        flag=1;
+    
+    if(flag==0) i--;
+    else if(flag==1) i++;
+    
+    
+    if(i==0) {
+        SETLED(LED1_PORT); 
+        delay();
+        CLEARLED(LED1_PORT);
+    }
+    else if(i==1){
+        SETLED(LED2_PORT); 
+        delay();
+        CLEARLED(LED2_PORT);
+    }
+    else if(i==2) {
+        SETLED(LED3_PORT); 
+        delay();
+        CLEARLED(LED3_PORT);
+    }
+    else if(i==3){
+        SETLED(LED4_PORT); 
+        delay();
+        CLEARLED(LED4_PORT);
+    }
+    else {
+        SETLED(LED5_PORT); 
+        delay();
+        CLEARLED(LED5_PORT);
+    }
+    
+    
+ 
+        
+} 
+   
+    
     // Stop
 
         ;
