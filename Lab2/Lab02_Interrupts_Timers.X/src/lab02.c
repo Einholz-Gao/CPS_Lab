@@ -43,7 +43,7 @@ void initialize_timer()
     // Load Timer Periods
     PR1 = 128;// 1 second starting from 0
     PR2 = 100;// 2 milliseconds
-    PR3 = 100000000000000;//Problem!!!!!!!!!!!!!!!!!!!!!!
+    PR3 = 65535;//max value for PR3 is 16bit
     // Reset Timer Values
     TMR1 = 0x00;
     TMR2 = 0x00;
@@ -75,25 +75,24 @@ void timer_loop()
     TMR3 = 0x00;
     while(TRUE)
     {
-        int T1 = T1_counter/60;
-        lcd_locate(0, 2);
-        lcd_printf("%2d:%2d.%3d",T1,T1_counter%60,T2_counter*2%1000);
-        float time = TMR3/12800;
-//        if (T3_counter == 2000){
-//            TOGGLELED(LED3_PORT);
+        T3_counter++;
+       
+        //we put the lcd functions inside if() to speed up the loop.
+        if (T3_counter == 2000){
+            lcd_locate(0, 2);
+            lcd_printf("%2d:%2d.%3d",T1_counter/60,T1_counter%60,T2_counter*2%1000);
+            TOGGLELED(LED3_PORT);
+            float time = (float)TMR3/12800;//to calculate it, check the manual page 13.
             lcd_locate(0, 3);
-            lcd_printf("TMR3=%d",TMR3);
+            lcd_printf("TMR3=%u",TMR3);//use unsigned int here.
             lcd_locate(0, 4);
-            lcd_printf("time: %f",time);
-//            TMR3=0x00;
-//            T3_counter=0;}
-//        T3_counter++;
+            lcd_printf("time: %6.4fms" ,time);//6means max number of characters is 6; 4means the number of decimals
+            TMR3=0x00;
+        T3_counter=0;}
+         
     }
 }
-//Problem: 
-//1.TMR3 works not good
-//2.loop works slowly.
-//3.PR3 highest value???
+
 
 void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T1Interrupt(void)
 { // invoked every ??
