@@ -31,19 +31,17 @@
 #define DAC_SCK_AD2CFG AD2PCFGLbits.PCFG11
 #define DAC_LDAC_AD2CFG AD2PCFGLbits.PCFG13
 unsigned int T2_counter;
-void delay(){
-    uint16_t c,d;
-   
-   for (c = 1; c <= 500; c++)
-       for (d = 1; d <= 500; d++)
-       {};
-}// definition of delay function
+
 
 void dac_initialize()
 {
     SETBIT(DAC_SDI_AD1CFG); // set Pin to Digital
     SETBIT(DAC_SCK_AD1CFG); // set Pin to Digital
     SETBIT(DAC_LDAC_AD1CFG); // set Pin to Digital
+    
+    SETBIT(DAC_SDI_AD2CFG); // set Pin to Digital
+    SETBIT(DAC_SCK_AD2CFG); // set Pin to Digital
+    SETBIT(DAC_LDAC_AD2CFG); // set Pin to Digital
     // set AN10, AN11 AN13 to digital mode
     // this means AN10 will become RB10, AN11->RB11, AN13->RB13
     // see datasheet 11.3
@@ -55,10 +53,10 @@ void dac_initialize()
     // set RD8, RB10, RB11, RB13 as output pins
     
     SETBIT(DAC_CS_PORT);
-    CLEARBIT(DAC_SCK_PORT);
-    CLEARBIT(DAC_SDI_PORT);
+    SETBIT(DAC_SCK_PORT);
+    SETBIT(DAC_SDI_PORT);
     SETBIT(DAC_LDAC_PORT);
-    // set default state: CS=??, SCK=??, SDI=??, LDAC=??
+    // set default state: CS=1, SCK=1, SDI=??, LDAC=1
     
 }
 
@@ -103,7 +101,7 @@ void timer_initialize()
     T1CONbits.TSYNC = 0;
     // Load Timer Periods
     PR1 = 128;// 1 second starting from 0
-    PR2 = 25000;// 2 milliseconds
+    PR2 = 50;// 1 milliseconds
     PR3 = 65535;//max value for PR3 is 16bit
     // Reset Timer Values
     TMR1 = 0x00;
@@ -122,8 +120,117 @@ void timer_initialize()
     T1CONbits.TON = 1;
     T2CONbits.TON = 1;
     T3CONbits.TON = 1;
+    
 }
 
+
+void Voltage1(){
+        CLEARBIT(DAC_SCK_PORT);
+        Nop();
+        CLEARBIT(DAC_CS_PORT);
+        Nop();
+        
+        int i;
+        for(i=0; i<16;i++){
+            if(i==0||i==2||i==3||i==4){
+            SETBIT(DAC_SDI_PORT);// set to 1
+            Nop();
+            SETBIT(DAC_SCK_PORT);
+            Nop();
+            CLEARBIT(DAC_SCK_PORT);
+            Nop();
+            }
+            else{
+            CLEARBIT(DAC_SDI_PORT);// set to 1
+            Nop();
+            SETBIT(DAC_SCK_PORT);
+            Nop();
+            CLEARBIT(DAC_SCK_PORT);
+            Nop();}
+        
+        }
+       
+        CLEARBIT(DAC_SCK_PORT);
+        Nop();
+        //we can use for-loop here, instead of so many lines
+        SETBIT(DAC_CS_PORT);
+        Nop();
+        CLEARBIT(DAC_LDAC_PORT);
+        Nop();
+        SETBIT(DAC_LDAC_PORT);
+        Nop();}
+
+void Voltage2(){
+        CLEARBIT(DAC_SCK_PORT);
+        Nop();
+        CLEARBIT(DAC_CS_PORT);
+        Nop();
+        
+        int i;
+        for(i=0; i<16;i++){
+            if(i==0||i==3||i==4||i==6){
+            SETBIT(DAC_SDI_PORT);// set to 1
+            Nop();
+            SETBIT(DAC_SCK_PORT);
+            Nop();
+            CLEARBIT(DAC_SCK_PORT);
+            Nop();
+            }
+            else{
+            CLEARBIT(DAC_SDI_PORT);// set to 1
+            Nop();
+            SETBIT(DAC_SCK_PORT);
+            Nop();
+            CLEARBIT(DAC_SCK_PORT);
+            Nop();}
+        
+        }
+       
+        CLEARBIT(DAC_SCK_PORT);
+        Nop();
+        //we can use for-loop here, instead of so many lines
+        SETBIT(DAC_CS_PORT);
+        Nop();
+        CLEARBIT(DAC_LDAC_PORT);
+        Nop();
+        SETBIT(DAC_LDAC_PORT);
+        Nop();}
+
+void Voltage3(){
+        CLEARBIT(DAC_SCK_PORT);
+        Nop();
+        CLEARBIT(DAC_CS_PORT);
+        Nop();
+        
+        int i;
+        for(i=0; i<16;i++){
+            if(i==0||i==3||i==4||i==5||i==6){
+            SETBIT(DAC_SDI_PORT);// set to 1
+            Nop();
+            SETBIT(DAC_SCK_PORT);
+            Nop();
+            CLEARBIT(DAC_SCK_PORT);
+            Nop();
+            }
+            else{
+            CLEARBIT(DAC_SDI_PORT);// set to 1
+            Nop();
+            SETBIT(DAC_SCK_PORT);
+            Nop();
+            CLEARBIT(DAC_SCK_PORT);
+            Nop();}
+        
+        }
+       
+        CLEARBIT(DAC_SCK_PORT);
+        Nop();
+        //we can use for-loop here, instead of so many lines
+        SETBIT(DAC_CS_PORT);
+        Nop();
+        CLEARBIT(DAC_LDAC_PORT);
+        Nop();
+        SETBIT(DAC_LDAC_PORT);
+        Nop();}
 // interrupt service routine?
 void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T2Interrupt(void)
 { // invoked every ??
@@ -135,74 +242,33 @@ void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T2Interrupt(void)
  * main loop
  */
 
+
 void main_loop()
 {
+        // Enable the Timers
+    T1CONbits.TON = 1;
+    T2CONbits.TON = 1;
+    T3CONbits.TON = 1;
     // print assignment information
     lcd_printf("Lab03: DAC");
     lcd_locate(0, 1);
     lcd_printf("Group: GroupName");
-    
+    int time0,time;
+    time0=T2_counter;
+    Voltage1();
     while(TRUE)
     {
-        CLEARBIT(DAC_CS_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//USE DACA
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        Nop();
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SDI_PORT);//GA = 1
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SDI_PORT);//Active mode operation. VOUT is available. 
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//D11
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SDI_PORT);//D10
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//D9
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//D8
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//D7
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//D6
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//D5
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//D4
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//D3
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//D2
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//D1
-        CLEARBIT(DAC_SCK_PORT);
-        SETBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_SDI_PORT);//D0
-        CLEARBIT(DAC_SCK_PORT);
-        //we can use for-loop here, instead of so many lines.
-        
-        
-        
-        SETBIT(DAC_CS_PORT);
-        CLEARBIT(DAC_SCK_PORT);
-        CLEARBIT(DAC_LDAC_PORT);
-        Nop();
-        SETBIT(DAC_LDAC_PORT);
-        delay();
+        time=T2_counter-time0;
+        if(time==500){
+        Voltage2();
+        }
+        else if(time==2500){
+        Voltage3();
+        }
+        else if(time==3500){
+        Voltage1();
+        }
+    
         // main loop code
     }
 }
