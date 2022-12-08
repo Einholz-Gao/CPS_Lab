@@ -31,8 +31,7 @@
 #define DAC_SCK_AD2CFG AD2PCFGLbits.PCFG11
 #define DAC_LDAC_AD2CFG AD2PCFGLbits.PCFG13
 unsigned int T2_counter;
-
-
+unsigned int flag;
 void dac_initialize()
 {
     SETBIT(DAC_SDI_AD1CFG); // set Pin to Digital
@@ -82,48 +81,52 @@ void timer_initialize()
     // lower 8 bits of the register OSCCON)
     __builtin_write_OSCCONL(OSCCONL | 2);
     // configure timer
-    T1CONbits.TON = 0; //Disable Timer 1
-    T2CONbits.TON = 0;//Disable Timer 2
-    T3CONbits.TON = 0;//Disable Timer 3
+
+    T1CONbits.TON = 0;//Disable Timer 2
+
     // Set Prescaler
-    T1CONbits.TCKPS = 0b11;
-    T2CONbits.TCKPS = 0b11;// 1/256
-    T3CONbits.TCKPS = 0b00;// 1/1
+
+    T1CONbits.TCKPS = 0b11;// 1/256
+
     // Set Clock Source
+
     T1CONbits.TCS = 1;
-    T2CONbits.TCS = 0;
-    T3CONbits.TCS = 0;
+
     // Set Gated Timer Mode -> don't use gating
+
     CLEARBIT(T1CONbits.TGATE);
-    CLEARBIT(T2CONbits.TGATE);
-    CLEARBIT(T3CONbits.TGATE);
+
     // T1: Set External Clock Input Synchronization -> no sync
     T1CONbits.TSYNC = 0;
     // Load Timer Periods
-    PR1 = 128;// 1 second starting from 0
-    PR2 = 50;// 1 milliseconds
-    PR3 = 65535;//max value for PR3 is 16bit
+
+    PR1 = 64;// 
+
     // Reset Timer Values
+
     TMR1 = 0x00;
-    TMR2 = 0x00;
     
     // Set Interrupt Priority
+;
     IPC0bits.T1IP = 0x01;
-    IPC1bits.T2IP = 0x01;
     // Clear Interrupt Flags
+
     IFS0bits.T1IF = 0;
-    IFS0bits.T2IF = 0;
     // Enable Interrupts
+
     IEC0bits.T1IE = 1;
-    IEC0bits.T2IE = 1;
     // Enable the Timers
-    T1CONbits.TON = 1;
-    T2CONbits.TON = 1;
-    T3CONbits.TON = 1;
+
     
 }
 
-
+void Voltage(unsigned int data){
+    data = (1<<12)|data;
+    int i;
+    for(i=0;i<16;i++){
+        DAC_SDI_PORT = data>>(15-i)&1;
+    }
+}
 void Voltage1(){
         CLEARBIT(DAC_SCK_PORT);
         Nop();
@@ -132,7 +135,7 @@ void Voltage1(){
         
         int i;
         for(i=0; i<16;i++){
-            if(i==0||i==2||i==3||i==4){
+            if(i==0||i==3||i==6||i==7||i==8||i==9||i==10||i==12){
             SETBIT(DAC_SDI_PORT);// set to 1
             Nop();
             SETBIT(DAC_SCK_PORT);
@@ -168,7 +171,7 @@ void Voltage2(){
         
         int i;
         for(i=0; i<16;i++){
-            if(i==0||i==3||i==4||i==6){
+            if(i==0||i==3||i==4||i==7||i==8||i==9||i==14){
             SETBIT(DAC_SDI_PORT);// set to 1
             Nop();
             SETBIT(DAC_SCK_PORT);
@@ -204,7 +207,7 @@ void Voltage3(){
         
         int i;
         for(i=0; i<16;i++){
-            if(i==0||i==3||i==4||i==5||i==6){
+            if(i==0||i==3||i==4||i==5||i==7||i==8||i==10||i==12||i==13){
             SETBIT(DAC_SDI_PORT);// set to 1
             Nop();
             SETBIT(DAC_SCK_PORT);
@@ -232,11 +235,31 @@ void Voltage3(){
         SETBIT(DAC_LDAC_PORT);
         Nop();}
 // interrupt service routine?
-void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T2Interrupt(void)
+void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T1Interrupt(void)
 { // invoked every ??
-    T2_counter++; // Increment a global counter
-    IFS0bits.T2IF = 0; // clear the interrupt flag
     TOGGLELED(LED1_PORT);
+    IFS0bits.T1IF = 0; // clear the interrupt flag
+    flag++;
+    if(flag==1){
+        PR1=256;
+        Voltage2();
+        TMR1 = 0x00; 
+        T1CONbits.TON = 1;
+    }
+    else if(flag==2){
+        PR1=128;
+        Voltage3();
+        TMR1 = 0x00; 
+        T1CONbits.TON = 1;
+    }
+    else if(flag==3){
+        PR1=64;
+        Voltage1();
+        TMR1 = 0x00; 
+        T1CONbits.TON = 1;
+        flag=0;
+    }
+
 }
 /*
  * main loop
@@ -246,29 +269,14 @@ void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T2Interrupt(void)
 void main_loop()
 {
         // Enable the Timers
-    T1CONbits.TON = 1;
-    T2CONbits.TON = 1;
-    T3CONbits.TON = 1;
+    
     // print assignment information
     lcd_printf("Lab03: DAC");
     lcd_locate(0, 1);
-    lcd_printf("Group: GroupName");
-    int time0,time;
-    time0=T2_counter;
+    lcd_printf("Group: Group7");
     Voltage1();
-    while(TRUE)
-    {
-        time=T2_counter-time0;
-        if(time==500){
-        Voltage2();
-        }
-        else if(time==2500){
-        Voltage3();
-        }
-        else if(time==3500){
-        Voltage1();
-        }
-    
+    flag=0;
+    T1CONbits.TON = 1;
         // main loop code
     }
-}
+
