@@ -121,143 +121,60 @@ void timer_initialize()
 }
 
 void Voltage(unsigned int data){
+    CLEARBIT(DAC_SCK_PORT);
+    Nop();
+    CLEARBIT(DAC_CS_PORT);
+    Nop();
+    
     data = (1<<12)|data;
+    data = (1<<15)|data;
     int i;
     for(i=0;i<16;i++){
         DAC_SDI_PORT = data>>(15-i)&1;
+        Nop();
+        SETBIT(DAC_SCK_PORT);
+        Nop();
+        CLEARBIT(DAC_SCK_PORT);
+        Nop();
     }
+    CLEARBIT(DAC_SCK_PORT);
+    Nop();
+    //we can use for-loop here, instead of so many lines
+    SETBIT(DAC_CS_PORT);
+    Nop();
+    CLEARBIT(DAC_LDAC_PORT);
+    Nop();
+    SETBIT(DAC_LDAC_PORT);
+    Nop();
 }
-void Voltage1(){
-        CLEARBIT(DAC_SCK_PORT);
-        Nop();
-        CLEARBIT(DAC_CS_PORT);
-        Nop();
-        
-        int i;
-        for(i=0; i<16;i++){
-            if(i==0||i==3||i==6||i==7||i==8||i==9||i==10||i==12){
-            SETBIT(DAC_SDI_PORT);// set to 1
-            Nop();
-            SETBIT(DAC_SCK_PORT);
-            Nop();
-            CLEARBIT(DAC_SCK_PORT);
-            Nop();
-            }
-            else{
-            CLEARBIT(DAC_SDI_PORT);// set to 1
-            Nop();
-            SETBIT(DAC_SCK_PORT);
-            Nop();
-            CLEARBIT(DAC_SCK_PORT);
-            Nop();}
-        
-        }
-       
-        CLEARBIT(DAC_SCK_PORT);
-        Nop();
-        //we can use for-loop here, instead of so many lines
-        SETBIT(DAC_CS_PORT);
-        Nop();
-        CLEARBIT(DAC_LDAC_PORT);
-        Nop();
-        SETBIT(DAC_LDAC_PORT);
-        Nop();}
 
-void Voltage2(){
-        CLEARBIT(DAC_SCK_PORT);
-        Nop();
-        CLEARBIT(DAC_CS_PORT);
-        Nop();
-        
-        int i;
-        for(i=0; i<16;i++){
-            if(i==0||i==3||i==4||i==7||i==8||i==9||i==14){
-            SETBIT(DAC_SDI_PORT);// set to 1
-            Nop();
-            SETBIT(DAC_SCK_PORT);
-            Nop();
-            CLEARBIT(DAC_SCK_PORT);
-            Nop();
-            }
-            else{
-            CLEARBIT(DAC_SDI_PORT);// set to 1
-            Nop();
-            SETBIT(DAC_SCK_PORT);
-            Nop();
-            CLEARBIT(DAC_SCK_PORT);
-            Nop();}
-        
-        }
-       
-        CLEARBIT(DAC_SCK_PORT);
-        Nop();
-        //we can use for-loop here, instead of so many lines
-        SETBIT(DAC_CS_PORT);
-        Nop();
-        CLEARBIT(DAC_LDAC_PORT);
-        Nop();
-        SETBIT(DAC_LDAC_PORT);
-        Nop();}
 
-void Voltage3(){
-        CLEARBIT(DAC_SCK_PORT);
-        Nop();
-        CLEARBIT(DAC_CS_PORT);
-        Nop();
-        
-        int i;
-        for(i=0; i<16;i++){
-            if(i==0||i==3||i==4||i==5||i==7||i==8||i==10||i==12||i==13){
-            SETBIT(DAC_SDI_PORT);// set to 1
-            Nop();
-            SETBIT(DAC_SCK_PORT);
-            Nop();
-            CLEARBIT(DAC_SCK_PORT);
-            Nop();
-            }
-            else{
-            CLEARBIT(DAC_SDI_PORT);// set to 1
-            Nop();
-            SETBIT(DAC_SCK_PORT);
-            Nop();
-            CLEARBIT(DAC_SCK_PORT);
-            Nop();}
-        
-        }
-       
-        CLEARBIT(DAC_SCK_PORT);
-        Nop();
-        //we can use for-loop here, instead of so many lines
-        SETBIT(DAC_CS_PORT);
-        Nop();
-        CLEARBIT(DAC_LDAC_PORT);
-        Nop();
-        SETBIT(DAC_LDAC_PORT);
-        Nop();}
 // interrupt service routine?
 void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T1Interrupt(void)
 { // invoked every ??
-    TOGGLELED(LED1_PORT);
+    
     IFS0bits.T1IF = 0; // clear the interrupt flag
     flag++;
     if(flag==1){
         PR1=256;
-        Voltage2();
+        //Voltage2();
+        Voltage(2500);
         TMR1 = 0x00; 
         T1CONbits.TON = 1;
     }
     else if(flag==2){
         PR1=128;
-        Voltage3();
+        Voltage(3500);
         TMR1 = 0x00; 
         T1CONbits.TON = 1;
     }
     else if(flag==3){
         PR1=64;
-        Voltage1();
+        Voltage(1000);
         TMR1 = 0x00; 
         T1CONbits.TON = 1;
         flag=0;
+        TOGGLELED(LED1_PORT);
     }
 
 }
@@ -274,7 +191,7 @@ void main_loop()
     lcd_printf("Lab03: DAC");
     lcd_locate(0, 1);
     lcd_printf("Group: Group7");
-    Voltage1();
+    Voltage(1000);
     flag=0;
     T1CONbits.TON = 1;
         // main loop code
