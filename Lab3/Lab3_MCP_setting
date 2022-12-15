@@ -29,3 +29,4 @@ external clock
 
 V1 enable T1 500ms disable T1 ->reset T1 -> V2 enable T2 2000ms disable T2 -> V3 enable T3 1000ms disable T3 ->
    Int1     Int2      Int3
+0001 

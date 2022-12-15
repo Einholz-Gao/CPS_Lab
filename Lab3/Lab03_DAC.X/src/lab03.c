@@ -30,8 +30,7 @@
 #define DAC_SDI_AD2CFG AD2PCFGLbits.PCFG10
 #define DAC_SCK_AD2CFG AD2PCFGLbits.PCFG11
 #define DAC_LDAC_AD2CFG AD2PCFGLbits.PCFG13
-unsigned int T2_counter;
-unsigned int flag;
+
 void dac_initialize()
 {
     SETBIT(DAC_SDI_AD1CFG); // set Pin to Digital
