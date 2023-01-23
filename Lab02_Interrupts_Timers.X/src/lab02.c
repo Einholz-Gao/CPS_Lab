@@ -12,6 +12,14 @@
 
 #define FCY_EXT 32768
 unsigned int T1_counter,T2_counter;
+void delay(){
+    uint16_t c,d;
+   
+   for (c = 1; c <= 500; c++)
+       for (d = 1; d <= 500; d++)
+       {};
+}// definition of delay function
+
 void initialize_timer()
 {
     // Enable RTC Oscillator -> this effectively does OSCCONbits.LPOSCEN = 1
