@@ -71,7 +71,7 @@ void init_touch(){
     CLEARBIT(TRISEbits.TRISE1);
     CLEARBIT(TRISEbits.TRISE2);
     CLEARBIT(TRISEbits.TRISE3);//set TRISE RE1,2,3 to output
-    CLEARBIT( AD1PCFGLbits.PCFG15); //set AD1 AN15 input pin as analog-X
+    //CLEARBIT( AD1PCFGLbits.PCFG15); //set AD1 AN15 input pin as analog-X
     //Configure AD1CON1
     CLEARBIT(AD1CON1bits.AD12B); //set 10b Operation Mode
     AD1CON1bits.FORM = 0; //set integer output
@@ -92,7 +92,7 @@ void init_touch(){
     CLEARBIT(TRISEbits.TRISE1);
     CLEARBIT(TRISEbits.TRISE2);
     CLEARBIT(TRISEbits.TRISE3);//set TRISE RE1,2,3 to output
-    CLEARBIT( AD2PCFGLbits.PCFG9); //set AD2 AN9 input pin as analog-Y
+    //CLEARBIT( AD2PCFGLbits.PCFG9); //set AD2 AN9 input pin as analog-Y
     //Configure AD2CON1
     CLEARBIT(AD2CON1bits.AD12B); //set 10b Operation Mode
     AD2CON1bits.FORM = 0; //set integer output
@@ -112,19 +112,26 @@ void dim_touch(char dim){//set the dimension
     
     //connected to ADC-X
     if(dim=='X'){
+        Nop();
         CLEARBIT(PORTEbits.RE1);
+        Nop();
         SETBIT(PORTEbits.RE2);
+        Nop();
         SETBIT(PORTEbits.RE3);
         AD1CHS0bits.CH0SA = 0x0F; //set ADC to Sample AN15 pin
     }
     
     //connected to ADC-Y
     if(dim=='Y'){
+        Nop();
         SETBIT(PORTEbits.RE1);
+        Nop();
         CLEARBIT(PORTEbits.RE2);
+        Nop();
         CLEARBIT(PORTEbits.RE3);
         AD2CHS0bits.CH0SA = 0x09; //set ADC to Sample AN9 pin
     }
+    __delay_ms(10);
 }
 
 uint16_t read_touch_x(){//read the position of the ball
@@ -235,8 +242,7 @@ void main_loop()
     init_touch();
     uint16_t rx,ry;
     while(TRUE) {
-
-    // Enable the Timers
+  // Enable the Timers
     set_servo('X', 0.9);
     set_servo('Y', 0.9);
     dim_touch('X');
@@ -272,8 +278,8 @@ void main_loop()
     ry=read_touch_y();
     lcd_locate(0, 3);
     lcd_printf("X: %i Y: %i",rx,ry);
-    delay(); 
-        
+    delay();  
 
+    //issue: the position value of Y sometimes turn too big (seems like a overflow)
     }
 }

@@ -1,0 +1,39 @@
+  // Enable the Timers
+    set_servo('X', 0.9);
+    set_servo('Y', 0.9);
+    dim_touch('X');
+    rx=read_touch_x();
+    dim_touch('Y');
+    ry=read_touch_y();
+    lcd_locate(0, 3);
+    lcd_printf("X: %i Y: %i",rx,ry);
+    delay();
+    set_servo('X', 0.9);
+    set_servo('Y', 2.1);
+    dim_touch('X');
+    rx=read_touch_x();
+    dim_touch('Y');
+    ry=read_touch_y();
+    lcd_locate(0, 3);
+    lcd_printf("X: %i Y: %i",rx,ry);
+    delay(); 
+    set_servo('X', 2.1);
+    set_servo('Y', 2.1);
+    dim_touch('X');
+    rx=read_touch_x();
+    dim_touch('Y');
+    ry=read_touch_y();
+    lcd_locate(0, 3);
+    lcd_printf("X: %i Y: %i",rx,ry);
+    delay(); 
+    set_servo('X', 2.1);
+    set_servo('Y', 0.9);
+    dim_touch('X');
+    rx=read_touch_x();
+    dim_touch('Y');
+    ry=read_touch_y();
+    lcd_locate(0, 3);
+    lcd_printf("X: %i Y: %i",rx,ry);
+    delay(); 
+        
+
