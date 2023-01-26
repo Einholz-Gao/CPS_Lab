@@ -250,7 +250,7 @@ void main_loop()
     dim_touch('Y');
     ry=read_touch_y();
     lcd_locate(0, 3);
-    lcd_printf("X: %i Y: %i",rx,ry);
+    lcd_printf("X: %u   Y: %u   ",rx,ry);
     delay();
     set_servo('X', 0.9);
     set_servo('Y', 2.1);
@@ -259,7 +259,7 @@ void main_loop()
     dim_touch('Y');
     ry=read_touch_y();
     lcd_locate(0, 3);
-    lcd_printf("X: %i Y: %i",rx,ry);
+    lcd_printf("X: %u   Y: %u   ",rx,ry);
     delay(); 
     set_servo('X', 2.1);
     set_servo('Y', 2.1);
@@ -268,7 +268,7 @@ void main_loop()
     dim_touch('Y');
     ry=read_touch_y();
     lcd_locate(0, 3);
-    lcd_printf("X: %i Y: %i",rx,ry);
+    lcd_printf("X: %u   Y: %u   ",rx,ry);
     delay(); 
     set_servo('X', 2.1);
     set_servo('Y', 0.9);
@@ -277,7 +277,7 @@ void main_loop()
     dim_touch('Y');
     ry=read_touch_y();
     lcd_locate(0, 3);
-    lcd_printf("X: %i Y: %i",rx,ry);
+    lcd_printf("X: %u   Y: %u   ",rx,ry);
     delay();  
 
     //issue: the position value of Y sometimes turn too big (seems like a overflow)
