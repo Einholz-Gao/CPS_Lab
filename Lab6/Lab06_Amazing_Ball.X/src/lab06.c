@@ -30,14 +30,29 @@ unsigned int T2_counter;
 #define a2 -0.6796
 #define b1 0.1602
 #define b2 0.1602
+#define r 50
+#define x_center 325
+#define y_center 260
+#define d_speed 15.7
+
+
+#define kp 1
+#define kd 0.1
 
 
 
 /*
  * Global Variables
  */
-uint16_t rx_pre,ry_pre,rx_cur,ry_cur;
+uint16_t rx_pre,ry_pre,rx_cur,ry_cur,rx_ref,ry_ref;
+float deg=0;
 
+//Circle
+uint16_t circle(){
+    deg+=d_speed;
+    rx_ref = r * cos(deg)*180/3.14+x_center;
+    ry_ref = r * cos(deg)*180/3.14+y_center;
+}
 
 /*
  * Timer Code
@@ -53,39 +68,42 @@ void initialize_timer()
     // lower 8 bits of the register OSCCON)
     __builtin_write_OSCCONL(OSCCONL | 2);//enable LPOSC, enable macro to a 32kHz
     // Disable the Timers
-    T2CONbits.TON = 0;//Disable Timer 2
+    T3CONbits.TON = 0;//Disable Timer 2
     // Set Prescaler
-    T2CONbits.TCKPS = 0b11;// 1/256
+    T3CONbits.TCKPS = 0b11;// 1/256
     // Set Clock Source
-    T2CONbits.TCS = 0;
+    T3CONbits.TCS = 0;
     // Set Gated Timer Mode -> don't use gating
-    CLEARBIT(T2CONbits.TGATE);
+    CLEARBIT(T3CONbits.TGATE);
     // Load Timer Periods
-    PR2 = 500;// 10 milliseconds
+    PR3 = 500;// 10 milliseconds
     // Reset Timer Values
-    TMR2 = 0x00;
+    TMR3 = 0x00;
     // Set Interrupt Priority
-    IPC1bits.T2IP = 0x01;
+    IPC2bits.T3IP = 0x01;
     // Clear Interrupt Flags
-    IFS0bits.T2IF = 0;
+    IFS0bits.T3IF = 0;
     // Enable Interrupts
-    IEC0bits.T2IE = 1;
-    // Enable the Timers
-    T2CONbits.TON = 1; 
+    IEC0bits.T3IE = 1;
+ 
+    
+    CLEARBIT(T2CONbits.TON); // Disable Timer
+    CLEARBIT(T2CONbits.TCS); // Select internal instruction cycle clock
+    CLEARBIT(T2CONbits.TGATE); // Disable Gated Timer mode
+    TMR2 = 0x00; // Clear timer register
+    T2CONbits.TCKPS = 0b10; // Select 1:64 Prescaler
+    CLEARBIT(IFS0bits.T2IF); // Clear Timer2 interrupt status flag
+    CLEARBIT(IEC0bits.T2IE); // Disable Timer2 interrupt enable control bit
+    PR2 = 4000; // Set timer period 20ms:
+  // Set timer period 20ms:
+  // 4000= 20*10^-3 * 12.8*10^6 * 1/64
+       // Enable the Timers
+    T3CONbits.TON = 1; 
+
 }
 
-void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T2Interrupt(void)
-{ // invoked every ??
-    T2_counter++; // Increment a global counter
-    IFS0bits.T2IF = 0; // clear the interrupt flag
-    TOGGLELED(LED1_PORT);
-    dim_touch('X');
-    rx_cur=read_touch_x();
-    dim_touch('Y');
-    ry_cur=read_touch_y();
-    lcd_locate(0, 3);
-    lcd_printf("X: %u   Y: %u   ",rx_cur,ry_cur);
-}
+//100Hz
+
 
 /*
  * Servo Code
@@ -117,26 +135,31 @@ void init_servo(char num_servo) { // here the number is X(OC8) or Y(OC7)
 
 void set_servo(char num_servo, float duty_ms){
     if(num_servo == 'X'){
-      if(duty_ms==0.9){
+/*      if(duty_ms==0.9){
         OC8R = 3820;
-        OC8RS = 3820; /* Load OCRS: next pwm duty cycle */
+        OC8RS = 3820; 
         OC8CON = 0x0006;
       }
       else if(duty_ms==1.5){
         OC8R = 3700;
-        OC8RS = 3700; /* Load OCRS: next pwm duty cycle */
+        OC8RS = 3700; 
         OC8CON = 0x0006;
       }
       else if(duty_ms==2.1){
         OC8R = 3580;
-        OC8RS = 3580; /* Load OCRS: next pwm duty cycle */
+        OC8RS = 3580; 
         OC8CON = 0x0006;
       }
+    */
+    OC8R = 4000-(20*duty_ms);
+    OC8RS = 4000-(20*duty_ms); 
+    OC8CON = 0x0006;
+        //
     SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
     /* Set the initial duty cycle to 5ms(duty=1000)*/
-    // 0 degree: 0.9ms
-    //90 degree: 1.5ms
-    //180 degree: 2.1ms
+    // 0 degree: 0.9ms  OC8R = 20ms*0.9 = 180
+    //90 degree: 1.5ms  OC8R = 20ms*1.5 = 300
+    //180 degree: 2.1ms  OC8R = 20ms*2.1 = 420
   }
   if(num_servo == 'Y'){
       if(duty_ms==0.9){
@@ -252,14 +275,40 @@ uint16_t read_touch_y(){//read the position of the ball
 /*
  * PD Controller
  */
-
-
+uint16_t PD(uint16_t input, uint16_t ref){
+    uint16_t output = kp*(ref-input)+kd*((ref-input)/0.02);
+    return output;
+}
 
 /*
  * Butterworth Filter N=1, Cutoff 3 Hz, sampling @ 50 Hz
  */
+uint16_t butter_x(){
+    uint16_t output;
+    output = b1*rx_cur+b2*rx_pre-a2*output;
+    rx_pre = output;
+    return output;
+}
 
+uint16_t butter_y(){
+    uint16_t output;
+    output = b1*ry_cur+b2*ry_pre-a2*output;
+    ry_pre = output;
+    return output;
+}
 
+void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T2Interrupt(void)
+{ // invoked every ??
+    T2_counter++; // Increment a global counter
+    IFS0bits.T2IF = 0; // clear the interrupt flag
+    circle();
+    dim_touch('X');
+    rx_cur=read_touch_x();
+    dim_touch('Y');
+    ry_cur=read_touch_y();
+    lcd_locate(0, 3);
+    lcd_printf("X: %u   Y: %u   ",rx_cur,ry_cur);
+}
 
 /*
  * main loop
@@ -269,12 +318,15 @@ void main_loop()
     // print assignment information
     lcd_printf("Lab06: Amazing Ball");
     lcd_locate(0, 1);
-    lcd_printf("Group: GroupName");
+    lcd_printf("Group: Group7");
     lcd_locate(0, 2);
     
     
     
     while(TRUE) {
+     lcd_locate(0, 4);
+     lcd_printf("X_ref: %u   Y_ref: %u   ",rx_ref,ry_ref);
+    
         
     }
 }

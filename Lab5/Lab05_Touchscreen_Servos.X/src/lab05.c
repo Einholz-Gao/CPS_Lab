@@ -180,21 +180,26 @@ void init_servo(char num_servo) { // here the number is X(OC8) or Y(OC7)
 
 void set_servo(char num_servo, float duty_ms){
     if(num_servo == 'X'){
-      if(duty_ms==0.9){
+/*      if(duty_ms==0.9){
         OC8R = 3820;
-        OC8RS = 3820; /* Load OCRS: next pwm duty cycle */
+        OC8RS = 3820; 
         OC8CON = 0x0006;
       }
       else if(duty_ms==1.5){
         OC8R = 3700;
-        OC8RS = 3700; /* Load OCRS: next pwm duty cycle */
+        OC8RS = 3700; 
         OC8CON = 0x0006;
       }
       else if(duty_ms==2.1){
         OC8R = 3580;
-        OC8RS = 3580; /* Load OCRS: next pwm duty cycle */
+        OC8RS = 3580; 
         OC8CON = 0x0006;
       }
+    */
+    uint16_t OC_val = 4000-(20*duty_ms);
+    OC8R = OC_val;
+    OC8RS = OC_val; 
+    OC8CON = 0x0006;
     SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
     /* Set the initial duty cycle to 5ms(duty=1000)*/
     // 0 degree: 0.9ms
@@ -202,22 +207,27 @@ void set_servo(char num_servo, float duty_ms){
     //180 degree: 2.1ms
   }
   if(num_servo == 'Y'){
-      if(duty_ms==0.9){
+    if(duty_ms==0.9){
         OC7R = 3820;
-        OC7RS = 3820; /* Load OCRS: next pwm duty cycle */
+        OC7RS = 3820; 
         OC7CON = 0x0006;
       }
       else if(duty_ms==1.5){
         OC7R = 3700;
-        OC7RS = 3700; /* Load OCRS: next pwm duty cycle */
+        OC7RS = 3700; 
         OC7CON = 0x0006;
       }
       else if(duty_ms==2.1){
         OC7R = 3580;
-        OC7RS = 3580; /* Load OCRS: next pwm duty cycle */
+        OC7RS = 3580; 
         OC7CON = 0x0006;
       }
-      SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
+      
+   // uint16_t OC_val = 4000-(20*duty_ms);
+    //OC7R = OC_val;
+    //OC7RS = OC_val; 
+    //OC7CON = 0x0006;
+    SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
     /* Set the initial duty cycle to 5ms*/
   }
 }
