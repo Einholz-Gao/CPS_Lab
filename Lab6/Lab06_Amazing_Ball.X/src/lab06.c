@@ -16,7 +16,7 @@
 /*
  * Parameter
  */
-unsigned int T2_counter;
+unsigned int T3_counter;
 
 
 /*
@@ -26,32 +26,38 @@ unsigned int T2_counter;
 #define TCKPS_8   0x01
 #define TCKPS_64  0x02
 #define TCKPS_256 0x03
-#define a1 1.0
-#define a2 -0.6796
-#define b1 0.1602
-#define b2 0.1602
-#define r 50
-#define x_center 325
-#define y_center 260
-#define d_speed 15.7
+#define a1 1.0      //butter
+#define a2 -0.6796  //butter    
+#define b1 0.1602   //butter    
+#define b2 0.1602   //butter    
+#define r 25
+#define x_center 330
+#define y_center 335
+#define d_speed 2*3.14*0.2
 
 
-#define kp 1
-#define kd 0.1
+#define kp 0.002
+#define kd 0.005
 
+#define X_LEVELED_US 1495
+#define Y_LEVELED_US 1390
+#define PWM_MAX_US 2100
+#define PWM_MIN_US 900
 
 
 /*
  * Global Variables
  */
-uint16_t rx_pre,ry_pre,rx_cur,ry_cur,rx_ref,ry_ref;
+float rx_pre,ry_pre,rx_cur,ry_cur,rx_ref = x_center,ry_ref = y_center;
 float deg=0;
+float t=0;
 
 //Circle
-uint16_t circle(){
-    deg+=d_speed;
-    rx_ref = r * cos(deg)*180/3.14+x_center;
-    ry_ref = r * cos(deg)*180/3.14+y_center;
+void circle(){
+    t+=0.02;
+    deg= d_speed*t;
+    rx_ref = r * cos(deg)+x_center;
+    ry_ref = r * cos(deg)+y_center;
 }
 
 /*
@@ -67,6 +73,8 @@ void initialize_timer()
     // afterwards writes the value val to that register. (OSCCONL represents the
     // lower 8 bits of the register OSCCON)
     __builtin_write_OSCCONL(OSCCONL | 2);//enable LPOSC, enable macro to a 32kHz
+    
+    //timer for interrupt
     // Disable the Timers
     T3CONbits.TON = 0;//Disable Timer 2
     // Set Prescaler
@@ -86,7 +94,7 @@ void initialize_timer()
     // Enable Interrupts
     IEC0bits.T3IE = 1;
  
-    
+    // timer for...
     CLEARBIT(T2CONbits.TON); // Disable Timer
     CLEARBIT(T2CONbits.TCS); // Select internal instruction cycle clock
     CLEARBIT(T2CONbits.TGATE); // Disable Gated Timer mode
@@ -99,6 +107,7 @@ void initialize_timer()
   // 4000= 20*10^-3 * 12.8*10^6 * 1/64
        // Enable the Timers
     T3CONbits.TON = 1; 
+    T3_counter = 0;
 
 }
 
@@ -111,73 +120,42 @@ void initialize_timer()
 void init_servo(char num_servo) { // here the number is X(OC8) or Y(OC7)
   if(num_servo == 'X'){
     // setup OC8
-    CLEARBIT(TRISDbits.TRISD7); /* Set OC8 as output */
-    // OC8R = 1000;
-    // /* Set the initial duty cycle to 5ms*/
-    // OC8RS = 1000;
-    // /* Load OCRS: next pwm duty cycle */
+    OC8R = 3820;// 0 degree
+    OC8CON = 0x0006;
     
-    /* Set OC8: PWM, no fault check, Timer2 */
-    // SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
+    CLEARBIT(TRISDbits.TRISD7); /* Set OC8 as output */
+    SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
   }
   if(num_servo == 'Y'){
     // setup OC7
+    OC7R = 3820;
+    OC7CON = 0x0006;
+    
     CLEARBIT(TRISDbits.TRISD6); /* Set OC7 as output */
-    // OC7R = 1000;
-    // /* Set the initial duty cycle to 5ms*/
-    // OC7RS = 1000;
-    // /* Load OCRS: next pwm duty cycle */
-    /* Set OC7: PWM, no fault check, Timer2 */
-    // SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
+    SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
+
   }
   
 }
 
-void set_servo(char num_servo, float duty_ms){
+void set_servo(char num_servo, float duty_us){
     if(num_servo == 'X'){
-/*      if(duty_ms==0.9){
-        OC8R = 3820;
-        OC8RS = 3820; 
-        OC8CON = 0x0006;
-      }
-      else if(duty_ms==1.5){
-        OC8R = 3700;
-        OC8RS = 3700; 
-        OC8CON = 0x0006;
-      }
-      else if(duty_ms==2.1){
-        OC8R = 3580;
-        OC8RS = 3580; 
-        OC8CON = 0x0006;
-      }
-    */
-    OC8R = 4000-(20*duty_ms);
-    OC8RS = 4000-(20*duty_ms); 
-    OC8CON = 0x0006;
-        //
-    SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
+
+    float OC_val = 4000-(0.2*duty_us);
+    OC8RS = OC_val; 
     /* Set the initial duty cycle to 5ms(duty=1000)*/
-    // 0 degree: 0.9ms  OC8R = 20ms*0.9 = 180
-    //90 degree: 1.5ms  OC8R = 20ms*1.5 = 300
-    //180 degree: 2.1ms  OC8R = 20ms*2.1 = 420
+    // 0 degree: 0.9ms
+    //90 degree: 1.5ms
+    //180 degree: 2.1ms
   }
   if(num_servo == 'Y'){
-      if(duty_ms==0.9){
-        OC7R = 3820;
-        OC7RS = 3820; /* Load OCRS: next pwm duty cycle */
-        OC7CON = 0x0006;
-      }
-      else if(duty_ms==1.5){
-        OC7R = 3700;
-        OC7RS = 3700; /* Load OCRS: next pwm duty cycle */
-        OC7CON = 0x0006;
-      }
-      else if(duty_ms==2.1){
-        OC7R = 3580;
-        OC7RS = 3580; /* Load OCRS: next pwm duty cycle */
-        OC7CON = 0x0006;
-      }
-      SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
+    float OC_val = 4000-(0.2*duty_us);
+    OC7RS = OC_val; 
+      
+   // uint16_t OC_val = 4000-(20*duty_ms);
+    //OC7R = OC_val;
+    //OC7RS = OC_val; 
+    //OC7CON = 0x0006;
     /* Set the initial duty cycle to 5ms*/
   }
 }
@@ -275,39 +253,38 @@ uint16_t read_touch_y(){//read the position of the ball
 /*
  * PD Controller
  */
-uint16_t PD(uint16_t input, uint16_t ref){
-    uint16_t output = kp*(ref-input)+kd*((ref-input)/0.02);
+float error_pre;
+float PD(float input, float ref){
+    float error_cur = ref-input;
+    float output = kp*error_cur+kd*(error_cur-error_pre);
+    error_pre = error_cur;
+    if(output<-1) output=-1;
+    if(output>1) output=1;
     return output;
 }
 
 /*
  * Butterworth Filter N=1, Cutoff 3 Hz, sampling @ 50 Hz
  */
-uint16_t butter_x(){
-    uint16_t output;
-    output = b1*rx_cur+b2*rx_pre-a2*output;
-    rx_pre = output;
-    return output;
+
+
+float butter(float x){
+    static float x1=0,y1=0;
+    float y;
+    y = b1*x+b2*x1-a2*y1;
+    x1 = x;
+    y1 = y;
+    return y;
 }
 
-uint16_t butter_y(){
-    uint16_t output;
-    output = b1*ry_cur+b2*ry_pre-a2*output;
-    ry_pre = output;
-    return output;
-}
+float pid_out_x,pid_out_y;
 
-void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T2Interrupt(void)
+void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T3Interrupt(void)
 { // invoked every ??
-    T2_counter++; // Increment a global counter
-    IFS0bits.T2IF = 0; // clear the interrupt flag
-    circle();
-    dim_touch('X');
-    rx_cur=read_touch_x();
-    dim_touch('Y');
-    ry_cur=read_touch_y();
-    lcd_locate(0, 3);
-    lcd_printf("X: %u   Y: %u   ",rx_cur,ry_cur);
+    T3_counter++; // Increment a global counter
+    IFS0bits.T3IF = 0; // clear the interrupt flag
+    //circle();
+ 
 }
 
 /*
@@ -320,12 +297,57 @@ void main_loop()
     lcd_locate(0, 1);
     lcd_printf("Group: Group7");
     lcd_locate(0, 2);
+        initialize_timer();
+    // initialize touchscreen
+    init_servo('X');
+    init_servo('Y');
+    // initialize servos
+    init_touch();
+    // initialize touch screen
     
-    
+ 
     
     while(TRUE) {
+
+    // 100Hz
+    if(T3_counter==10){ //!!! to set the frequency: do not use ==, but use module %
+    dim_touch('X');
+    rx_cur=read_touch_x();
+    dim_touch('Y');
+    ry_cur=read_touch_y();
+    lcd_locate(0, 3);
+    lcd_printf("X: %u   Y: %u   ",rx_cur,ry_cur);
+    
+    }
+    //50Hz
+    
+    if(T3_counter>=20){
+    dim_touch('X');
+    rx_cur=read_touch_x();
+    dim_touch('Y');
+    ry_cur=read_touch_y();
+    lcd_locate(0, 3);
+    lcd_printf("X: %u   Y: %u   ",rx_cur,ry_cur);
+       
+        
+        
+     pid_out_x = PD(butter(rx_cur), rx_ref);
+     float x_servo_us = X_LEVELED_US + pid_out_x*(PWM_MAX_US-PWM_MIN_US)/2.0f;
+     set_servo('X',x_servo_us);
+     //circle();
      lcd_locate(0, 4);
-     lcd_printf("X_ref: %u   Y_ref: %u   ",rx_ref,ry_ref);
+     lcd_printf("X_ref: %u  Y_ref: %u  ",rx_ref,ry_ref);
+    
+    pid_out_y = PD(butter(ry_cur), ry_ref);
+    float y_servo_us = Y_LEVELED_US + pid_out_y*(PWM_MAX_US-PWM_MIN_US)/2.0f;
+    set_servo('Y',y_servo_us);
+    //circle();
+    lcd_locate(0, 4);
+    lcd_printf("X_ref: %u  Y_ref: %u  ",rx_ref,ry_ref);
+    
+    T3_counter=0;
+    }
+    
     
         
     }
