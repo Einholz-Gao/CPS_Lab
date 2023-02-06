@@ -36,8 +36,8 @@ unsigned int T3_counter;
 #define d_speed 2*3.14*0.2
 
 
-#define kp 0.002
-#define kd 0.005
+#define kp 0.001
+#define kd 0.00
 
 #define X_LEVELED_US 1495
 #define Y_LEVELED_US 1390
@@ -48,7 +48,7 @@ unsigned int T3_counter;
 /*
  * Global Variables
  */
-float rx_pre,ry_pre,rx_cur,ry_cur,rx_ref = x_center,ry_ref = y_center;
+uint16_t rx_pre,ry_pre,rx_cur,ry_cur,rx_ref = x_center,ry_ref = y_center;
 float deg=0;
 float t=0;
 
@@ -253,7 +253,7 @@ uint16_t read_touch_y(){//read the position of the ball
 /*
  * PD Controller
  */
-float error_pre;
+float error_pre=0;
 float PD(float input, float ref){
     float error_cur = ref-input;
     float output = kp*error_cur+kd*(error_cur-error_pre);
@@ -277,7 +277,7 @@ float butter(float x){
     return y;
 }
 
-float pid_out_x,pid_out_y;
+
 
 void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T3Interrupt(void)
 { // invoked every ??
@@ -297,7 +297,7 @@ void main_loop()
     lcd_locate(0, 1);
     lcd_printf("Group: Group7");
     lcd_locate(0, 2);
-        initialize_timer();
+    initialize_timer();
     // initialize touchscreen
     init_servo('X');
     init_servo('Y');
@@ -306,46 +306,45 @@ void main_loop()
     // initialize touch screen
     
  
+    int flag=0;
+    
     
     while(TRUE) {
 
+    
     // 100Hz
-    if(T3_counter==10){ //!!! to set the frequency: do not use ==, but use module %
+    if(T3_counter%10!=0){ //!!! to set the frequency: do not use ==, but use module %
     dim_touch('X');
     rx_cur=read_touch_x();
     dim_touch('Y');
     ry_cur=read_touch_y();
-    lcd_locate(0, 3);
-    lcd_printf("X: %u   Y: %u   ",rx_cur,ry_cur);
+    lcd_locate(0, 4);
+    lcd_printf("X: %u  Y: %u  ",rx_cur,ry_cur);
+    T3_counter=0;
+    flag++;
     
     }
     //50Hz
     
-    if(T3_counter>=20){
-    dim_touch('X');
-    rx_cur=read_touch_x();
-    dim_touch('Y');
-    ry_cur=read_touch_y();
-    lcd_locate(0, 3);
-    lcd_printf("X: %u   Y: %u   ",rx_cur,ry_cur);
-       
-        
-        
-     pid_out_x = PD(butter(rx_cur), rx_ref);
-     float x_servo_us = X_LEVELED_US + pid_out_x*(PWM_MAX_US-PWM_MIN_US)/2.0f;
-     set_servo('X',x_servo_us);
+    if(flag==2){
      //circle();
-     lcd_locate(0, 4);
-     lcd_printf("X_ref: %u  Y_ref: %u  ",rx_ref,ry_ref);
+     float pid_out_x,pid_out_y;
+     uint16_t x_filter = butter(rx_cur);
+     uint16_t y_filter = butter(ry_cur);
+     pid_out_x = PD(x_filter, rx_ref);
+     pid_out_y = PD(y_filter, ry_ref);
+     float x_servo_us = X_LEVELED_US + pid_out_x*(PWM_MAX_US-PWM_MIN_US)/2.0f;
+     float y_servo_us = Y_LEVELED_US + pid_out_y*(PWM_MAX_US-PWM_MIN_US)/2.0f;
+     //lcd_locate(0, 4);
+     //lcd_printf("X_ref: %u  Y_ref: %u  ",rx_ref,ry_ref);
+     
+     set_servo('X',x_servo_us);
+     set_servo('Y',y_servo_us);
     
-    pid_out_y = PD(butter(ry_cur), ry_ref);
-    float y_servo_us = Y_LEVELED_US + pid_out_y*(PWM_MAX_US-PWM_MIN_US)/2.0f;
-    set_servo('Y',y_servo_us);
-    //circle();
-    lcd_locate(0, 4);
-    lcd_printf("X_ref: %u  Y_ref: %u  ",rx_ref,ry_ref);
+     //lcd_locate(0, 4);
+     //lcd_printf("X_ref: %u  Y_ref: %u  ",rx_ref,ry_ref);
     
-    T3_counter=0;
+     flag=0;
     }
     
     
