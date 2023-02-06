@@ -26,18 +26,23 @@ unsigned int T3_counter;
 #define TCKPS_8   0x01
 #define TCKPS_64  0x02
 #define TCKPS_256 0x03
+
 #define a1 1.0      //butter
 #define a2 -0.6796  //butter    
 #define b1 0.1602   //butter    
 #define b2 0.1602   //butter    
-#define r 25
-#define x_center 330
-#define y_center 335
-#define d_speed 2*3.14*0.2
+
+#define r 100
+#define x_center 382
+#define y_center 393
+#define d_speed 2*3.14*0.3
 
 
-#define kp 0.001
-#define kd 0.00
+#define kp_x 0.0015
+#define kd_x 0.012
+
+#define kp_y 0.001
+#define kd_y 0.012
 
 #define X_LEVELED_US 1495
 #define Y_LEVELED_US 1390
@@ -48,16 +53,16 @@ unsigned int T3_counter;
 /*
  * Global Variables
  */
-uint16_t rx_pre,ry_pre,rx_cur,ry_cur,rx_ref = x_center,ry_ref = y_center;
+uint16_t rx_pre,ry_pre,rx_cur,ry_cur,rx_ref ,ry_ref ;
 float deg=0;
 float t=0;
 
 //Circle
 void circle(){
-    t+=0.02;
+    t+=0.02; // 1/50
     deg= d_speed*t;
     rx_ref = r * cos(deg)+x_center;
-    ry_ref = r * cos(deg)+y_center;
+    ry_ref = r * sin(deg)+y_center;
 }
 
 /*
@@ -76,23 +81,33 @@ void initialize_timer()
     
     //timer for interrupt
     // Disable the Timers
-    T3CONbits.TON = 0;//Disable Timer 2
+    T3CONbits.TON = 0;//Disable Timer 3
+    T1CONbits.TON = 0;//Disable Timer 1
     // Set Prescaler
     T3CONbits.TCKPS = 0b11;// 1/256
+    T1CONbits.TCKPS = 0b11;// 1/256
     // Set Clock Source
     T3CONbits.TCS = 0;
+    T1CONbits.TCS = 1;
     // Set Gated Timer Mode -> don't use gating
     CLEARBIT(T3CONbits.TGATE);
+    CLEARBIT(T3CONbits.TGATE);
     // Load Timer Periods
-    PR3 = 500;// 10 milliseconds
+    PR3 = 50;// 1 milliseconds
+    PR1 = 128; //128 = 1 second. should be equal to DDL(21ms?) but now don't know
+    
     // Reset Timer Values
     TMR3 = 0x00;
+    TMR1 = 0x00;
     // Set Interrupt Priority
     IPC2bits.T3IP = 0x01;
+    IPC0bits.T1IP = 0x01;
     // Clear Interrupt Flags
     IFS0bits.T3IF = 0;
+    IFS0bits.T1IF = 0;
     // Enable Interrupts
     IEC0bits.T3IE = 1;
+    IEC0bits.T1IE = 1;
  
     // timer for...
     CLEARBIT(T2CONbits.TON); // Disable Timer
@@ -253,38 +268,67 @@ uint16_t read_touch_y(){//read the position of the ball
 /*
  * PD Controller
  */
-float error_pre=0;
-float PD(float input, float ref){
+float error_pre_x=0;
+float PD_x(float input, float ref){
     float error_cur = ref-input;
-    float output = kp*error_cur+kd*(error_cur-error_pre);
-    error_pre = error_cur;
+    float output = kp_x*error_cur+kd_x*(error_cur-error_pre_x);
+    error_pre_x = error_cur;
     if(output<-1) output=-1;
     if(output>1) output=1;
     return output;
 }
+
+float error_pre_y=0;
+float PD_y(float input, float ref){
+    float error_cur = ref-input;
+    float output = kp_y*error_cur+kd_y*(error_cur-error_pre_y);
+    error_pre_y = error_cur;
+    if(output<-1) output=-1;
+    if(output>1) output=1;
+    return output;
+}
+
+
 
 /*
  * Butterworth Filter N=1, Cutoff 3 Hz, sampling @ 50 Hz
  */
 
 
-float butter(float x){
+float butter_x(){
     static float x1=0,y1=0;
     float y;
-    y = b1*x+b2*x1-a2*y1;
-    x1 = x;
+    y = b1*rx_cur+b2*x1-a2*y1;
+    x1 = rx_cur;
     y1 = y;
     return y;
 }
 
+float butter_y(){
+    static float x1=0,y1=0;
+    float y;
+    y = b1*ry_cur+b2*x1-a2*y1;
+    x1 = ry_cur;
+    y1 = y;
+    return y;
+}
 
+int DDL=0;
+int DDL_counter=0;
 
 void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T3Interrupt(void)
 { // invoked every ??
     T3_counter++; // Increment a global counter
     IFS0bits.T3IF = 0; // clear the interrupt flag
-    //circle();
- 
+}
+
+void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T1Interrupt(void)
+{ // invoked every ??
+     // Increment a global counter
+    IFS0bits.T1IF = 0; // clear the interrupt flag
+    if(DDL=0){
+    DDL_counter++;
+    }
 }
 
 /*
@@ -307,47 +351,53 @@ void main_loop()
     
  
     int flag=0;
-    
+    int flag_DDL = 0;
     
     while(TRUE) {
-
+    T1CONbits.TON = 1; 
+    TMR1 = 0x00;
+    DDL=0; 
     
     // 100Hz
     if(T3_counter%10!=0){ //!!! to set the frequency: do not use ==, but use module %
-    dim_touch('X');
+    dim_touch('X');//10ms
     rx_cur=read_touch_x();
-    dim_touch('Y');
+    dim_touch('Y');//10ms
     ry_cur=read_touch_y();
     lcd_locate(0, 4);
     lcd_printf("X: %u  Y: %u  ",rx_cur,ry_cur);
     T3_counter=0;
     flag++;
-    
     }
+
     //50Hz
     
     if(flag==2){
-     //circle();
+     circle();
      float pid_out_x,pid_out_y;
-     uint16_t x_filter = butter(rx_cur);
-     uint16_t y_filter = butter(ry_cur);
-     pid_out_x = PD(x_filter, rx_ref);
-     pid_out_y = PD(y_filter, ry_ref);
+     uint16_t x_filter = butter_x(rx_cur);
+     uint16_t y_filter = butter_y(ry_cur);
+     pid_out_x = PD_x(x_filter, rx_ref);
+     pid_out_y = PD_y(y_filter, ry_ref);
      float x_servo_us = X_LEVELED_US + pid_out_x*(PWM_MAX_US-PWM_MIN_US)/2.0f;
      float y_servo_us = Y_LEVELED_US + pid_out_y*(PWM_MAX_US-PWM_MIN_US)/2.0f;
-     //lcd_locate(0, 4);
-     //lcd_printf("X_ref: %u  Y_ref: %u  ",rx_ref,ry_ref);
-     
      set_servo('X',x_servo_us);
      set_servo('Y',y_servo_us);
-    
-     //lcd_locate(0, 4);
-     //lcd_printf("X_ref: %u  Y_ref: %u  ",rx_ref,ry_ref);
-    
      flag=0;
+     flag_DDL++;
+     //5Hz
+     if(flag_DDL==10){
+        lcd_locate(0, 6);
+        lcd_printf("Counter: %i",DDL_counter);
+        TOGGLELED(LED2_PORT);
+        flag_DDL = 0;
+     }
     }
     
-    
-        
+     DDL=1;
     }
+    
 }
+// Question: 
+//1. How long is the DDL?
+//2. 

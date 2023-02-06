@@ -29,6 +29,7 @@ void delay(){
        for (d = 1; d <= 5000; d++)
        {};
 }// definition of delay function
+
 void initialize_timer()
 {
 CLEARBIT(T2CONbits.TON); // Disable Timer
@@ -156,7 +157,11 @@ uint16_t read_touch_y(){//read the position of the ball
 void init_servo(char num_servo) { // here the number is X(OC8) or Y(OC7)
   if(num_servo == 'X'){
     // setup OC8
+    OC8R = 4000;
+    OC8CON = 0x0006;
+    
     CLEARBIT(TRISDbits.TRISD7); /* Set OC8 as output */
+    SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
     // OC8R = 1000;
     // /* Set the initial duty cycle to 5ms*/
     // OC8RS = 1000;
@@ -167,7 +172,11 @@ void init_servo(char num_servo) { // here the number is X(OC8) or Y(OC7)
   }
   if(num_servo == 'Y'){
     // setup OC7
+    OC7R = 4000;
+    OC7CON = 0x0006;
+    
     CLEARBIT(TRISDbits.TRISD6); /* Set OC7 as output */
+    SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
     // OC7R = 1000;
     // /* Set the initial duty cycle to 5ms*/
     // OC7RS = 1000;
@@ -178,57 +187,18 @@ void init_servo(char num_servo) { // here the number is X(OC8) or Y(OC7)
   
 }
 
-void set_servo(char num_servo, float duty_ms){
+void set_servo(char num_servo, float duty_us){
     if(num_servo == 'X'){
-/*      if(duty_ms==0.9){
-        OC8R = 3820;
-        OC8RS = 3820; 
-        OC8CON = 0x0006;
-      }
-      else if(duty_ms==1.5){
-        OC8R = 3700;
-        OC8RS = 3700; 
-        OC8CON = 0x0006;
-      }
-      else if(duty_ms==2.1){
-        OC8R = 3580;
-        OC8RS = 3580; 
-        OC8CON = 0x0006;
-      }
-    */
-    uint16_t OC_val = 4000-(20*duty_ms);
-    OC8R = OC_val;
+    uint16_t OC_val = 4000-(0.2*duty_us);
     OC8RS = OC_val; 
-    OC8CON = 0x0006;
-    SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
     /* Set the initial duty cycle to 5ms(duty=1000)*/
     // 0 degree: 0.9ms
     //90 degree: 1.5ms
     //180 degree: 2.1ms
   }
   if(num_servo == 'Y'){
-    if(duty_ms==0.9){
-        OC7R = 3820;
-        OC7RS = 3820; 
-        OC7CON = 0x0006;
-      }
-      else if(duty_ms==1.5){
-        OC7R = 3700;
-        OC7RS = 3700; 
-        OC7CON = 0x0006;
-      }
-      else if(duty_ms==2.1){
-        OC7R = 3580;
-        OC7RS = 3580; 
-        OC7CON = 0x0006;
-      }
-      
-   // uint16_t OC_val = 4000-(20*duty_ms);
-    //OC7R = OC_val;
-    //OC7RS = OC_val; 
-    //OC7CON = 0x0006;
-    SETBIT(T2CONbits.TON); /* Turn Timer 2 on */
-    /* Set the initial duty cycle to 5ms*/
+    uint16_t OC_val = 4000-(0.2*duty_us);
+    OC7RS = OC_val; 
   }
 }
 
@@ -253,8 +223,8 @@ void main_loop()
     uint16_t rx,ry;
     while(TRUE) {
   // Enable the Timers
-    set_servo('X', 0.9);
-    set_servo('Y', 0.9);
+    set_servo('X', 900);
+    set_servo('Y', 900);
     dim_touch('X');
     rx=read_touch_x();
     dim_touch('Y');
@@ -262,8 +232,8 @@ void main_loop()
     lcd_locate(0, 3);
     lcd_printf("X: %u   Y: %u   ",rx,ry);
     delay();
-    set_servo('X', 0.9);
-    set_servo('Y', 2.1);
+    set_servo('X', 900);
+    set_servo('Y', 2100);
     dim_touch('X');
     rx=read_touch_x();
     dim_touch('Y');
@@ -271,8 +241,8 @@ void main_loop()
     lcd_locate(0, 3);
     lcd_printf("X: %u   Y: %u   ",rx,ry);
     delay(); 
-    set_servo('X', 2.1);
-    set_servo('Y', 2.1);
+    set_servo('X', 2100);
+    set_servo('Y', 2100);
     dim_touch('X');
     rx=read_touch_x();
     dim_touch('Y');
@@ -280,8 +250,8 @@ void main_loop()
     lcd_locate(0, 3);
     lcd_printf("X: %u   Y: %u   ",rx,ry);
     delay(); 
-    set_servo('X', 2.1);
-    set_servo('Y', 0.9);
+    set_servo('X', 2100);
+    set_servo('Y', 900);
     dim_touch('X');
     rx=read_touch_x();
     dim_touch('Y');
