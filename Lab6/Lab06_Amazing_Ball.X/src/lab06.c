@@ -82,32 +82,26 @@ void initialize_timer()
     //timer for interrupt
     // Disable the Timers
     T3CONbits.TON = 0;//Disable Timer 3
-    T1CONbits.TON = 0;//Disable Timer 1
     // Set Prescaler
     T3CONbits.TCKPS = 0b11;// 1/256
-    T1CONbits.TCKPS = 0b11;// 1/256
     // Set Clock Source
     T3CONbits.TCS = 0;
-    T1CONbits.TCS = 1;
     // Set Gated Timer Mode -> don't use gating
     CLEARBIT(T3CONbits.TGATE);
     CLEARBIT(T3CONbits.TGATE);
     // Load Timer Periods
     PR3 = 50;// 1 milliseconds
-    PR1 = 128; //128 = 1 second. should be equal to DDL(21ms?) but now don't know
     
     // Reset Timer Values
     TMR3 = 0x00;
-    TMR1 = 0x00;
     // Set Interrupt Priority
     IPC2bits.T3IP = 0x01;
-    IPC0bits.T1IP = 0x01;
     // Clear Interrupt Flags
     IFS0bits.T3IF = 0;
-    IFS0bits.T1IF = 0;
+
     // Enable Interrupts
     IEC0bits.T3IE = 1;
-    IEC0bits.T1IE = 1;
+
  
     // timer for...
     CLEARBIT(T2CONbits.TON); // Disable Timer
@@ -115,13 +109,15 @@ void initialize_timer()
     CLEARBIT(T2CONbits.TGATE); // Disable Gated Timer mode
     TMR2 = 0x00; // Clear timer register
     T2CONbits.TCKPS = 0b10; // Select 1:64 Prescaler
-    CLEARBIT(IFS0bits.T2IF); // Clear Timer2 interrupt status flag
-    CLEARBIT(IEC0bits.T2IE); // Disable Timer2 interrupt enable control bit
+        IPC1bits.T2IP = 0x01;
+        IFS0bits.T2IF = 0;
+        IEC0bits.T2IE = 1;
     PR2 = 4000; // Set timer period 20ms:
   // Set timer period 20ms:
   // 4000= 20*10^-3 * 12.8*10^6 * 1/64
        // Enable the Timers
     T3CONbits.TON = 1; 
+    T2CONbits.TON = 1;
     T3_counter = 0;
 
 }
@@ -322,12 +318,13 @@ void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T3Interrupt(void)
     IFS0bits.T3IF = 0; // clear the interrupt flag
 }
 
-void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T1Interrupt(void)
+void __attribute__((__interrupt__, __shadow__, __auto_psv__)) _T2Interrupt(void)
 { // invoked every ??
      // Increment a global counter
-    IFS0bits.T1IF = 0; // clear the interrupt flag
-    if(DDL=0){
-    DDL_counter++;
+    IFS0bits.T2IF = 0; // clear the interrupt flag
+    TOGGLELED(LED3_PORT);
+    if(DDL=1){
+        DDL_counter++;
     }
 }
 
@@ -351,28 +348,34 @@ void main_loop()
     
  
     int flag=0;
+    int time_flag=0;
     int flag_DDL = 0;
     
     while(TRUE) {
-    T1CONbits.TON = 1; 
-    TMR1 = 0x00;
-    DDL=0; 
-    
+    DDL=1; 
+    TMR2 = 0x00;
     // 100Hz
     if(T3_counter%10!=0){ //!!! to set the frequency: do not use ==, but use module %
-    dim_touch('X');//10ms
-    rx_cur=read_touch_x();
-    dim_touch('Y');//10ms
-    ry_cur=read_touch_y();
+        //if(flag==0){
+            dim_touch('X');//10ms
+            rx_cur=read_touch_x();
+            //flag=1;
+        //}
+        //else{
+            dim_touch('Y');//10ms
+            ry_cur=read_touch_y();
+            //flag=0;
+        //}
+
     lcd_locate(0, 4);
     lcd_printf("X: %u  Y: %u  ",rx_cur,ry_cur);
     T3_counter=0;
-    flag++;
+    time_flag++;
     }
 
     //50Hz
     
-    if(flag==2){
+    if(time_flag==2){
      circle();
      float pid_out_x,pid_out_y;
      uint16_t x_filter = butter_x(rx_cur);
@@ -383,7 +386,7 @@ void main_loop()
      float y_servo_us = Y_LEVELED_US + pid_out_y*(PWM_MAX_US-PWM_MIN_US)/2.0f;
      set_servo('X',x_servo_us);
      set_servo('Y',y_servo_us);
-     flag=0;
+     time_flag=0;
      flag_DDL++;
      //5Hz
      if(flag_DDL==10){
@@ -393,11 +396,9 @@ void main_loop()
         flag_DDL = 0;
      }
     }
+        lcd_locate(0, 5);
+        lcd_printf("     DDL: %i",DDL);
+     DDL=0;
     
-     DDL=1;
     }
-    
 }
-// Question: 
-//1. How long is the DDL?
-//2. 
